@@ -1,2 +1,1 @@
-class MyGlobals(object):
-    serviceobject = {}
+serviceobject = {}
