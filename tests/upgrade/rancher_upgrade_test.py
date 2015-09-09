@@ -31,7 +31,6 @@ def upgrade_test(base, target, servernode):
     #global serviceobject
     #(service, env) = serviceobject['TestRancherComposeLB']
     #print ("\n service and env before server upgrade: \n", service, env)
-    global serviceobject
     serviceobject = tests.validation.cattlevalidationtest.serviceobjects.serviceobject
     print serviceobject
     upgrade_rancher_server(base, target, servernode)

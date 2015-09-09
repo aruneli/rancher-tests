@@ -1,2 +1,2 @@
+global serviceobject
 serviceobject = {}
-
