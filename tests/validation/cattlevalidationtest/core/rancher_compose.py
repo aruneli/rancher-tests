@@ -18,7 +18,7 @@ class TestRancherComposeService:
 
     @pytest.mark.create
     @pytest.mark.run(order=1)
-    def test_create_rancher_compose_lb_service(self, super_client, client, rancher_compose_container, socat_containers):
+    def test_create_rancher_compose_service(self, super_client, client, rancher_compose_container, socat_containers):
         vol_container = client.create_container(imageUuid=TEST_IMAGE_UUID,
                                                 name=random_str(),
                                                 labels={"c1": "vol"}
@@ -79,13 +79,14 @@ class TestRancherComposeService:
         # pkl_file = open('myfile.pkl', 'wb')
         # pickle.load(pkl_file)
         serviceobject['TestRancherComposeLB'] = (service, env)
-        print("\n****** CREATED LB OBJECT with BASE API VERSION *****\n", serviceobject["TestRancherComposeLB"])
+        print("\n****** CREATED SERVICE OBJECT *****\n", serviceobject["TestRancherComposeLB"])
         return service, env
 
     @pytest.mark.validate_created
     @pytest.mark.run(order=2)
-    def test_rancher_compose_lb_service(self, super_client, client, rancher_compose_container, socat_containers):
+    def test_rancher_compose_service(self, super_client, client, rancher_compose_container, socat_containers):
         global serviceobject
+        print "\n serviceobject is:", serviceobject
         (service, env) = serviceobject['TestRancherComposeLB']
         print "\n service is:", service
         print "\n env is:", env
@@ -143,7 +144,7 @@ class TestRancherComposeService:
             # assert "TEST_FILE=/etc/testpath.conf" in inspect["Config"]["Env"]
             # assert inspect["Config"]["CpuShares"] == cpu_shares
 
-        print("********************* VALIDATED LB BASE OBJECT with BASE API ***********************")
+        print("********************* VALIDATED LB BASE OBJECT ***********************")
         delete_all(client, [env, rancher_env])
 
 
