@@ -2,19 +2,21 @@ from tests.validation.cattlevalidationtest.core.common_fixtures import *  # NOQA
 import pytest
 import pickle
 import sys
+import tests.validation.cattlevalidationtest.serviceobjects
 
 TEST_SERVICE_OPT_IMAGE = 'ibuildthecloud/helloworld'
 TEST_SERVICE_OPT_IMAGE_LATEST = TEST_SERVICE_OPT_IMAGE + ':latest'
 TEST_SERVICE_OPT_IMAGE_UUID = 'docker:' + TEST_SERVICE_OPT_IMAGE_LATEST
 LB_IMAGE_UUID = "docker:sangeetha/testlbsd:latest"
 logger = logging.getLogger(__name__)
-serviceobject = {}
+#serviceobject = {}
 
 
 # @pytest.mark.skipif(1 != 2, reason="blah blah")
 class TestRancherComposeService:
 
     tname = "TestRancherComposeService"
+
 
     @pytest.mark.create
     @pytest.mark.run(order=1)
@@ -74,20 +76,30 @@ class TestRancherComposeService:
         service, env = create_env_and_svc(client, launch_config,
                                           scale, self.tname)
 
-        global serviceobject
-        #
-        # pkl_file = open('myfile.pkl', 'wb')
-        # pickle.load(pkl_file)
+        #global serviceobject
+        serviceobject = tests.validation.cattlevalidationtest.serviceobjects.serviceobject
         serviceobject['TestRancherComposeLB'] = (service, env)
+        print "\n serviceobject at test_create_rancher_compose_service is:", serviceobject
+
+        # with open("myfile.pkl", "wb") as f:
+        #             pickle.dump(serviceobject, f)
+
         print("\n****** CREATED SERVICE OBJECT *****\n", serviceobject["TestRancherComposeLB"])
         return service, env
 
     @pytest.mark.validate_created
     @pytest.mark.run(order=2)
     def test_rancher_compose_service(self, super_client, client, rancher_compose_container, socat_containers):
-        global serviceobject
-        print "\n serviceobject is:", serviceobject
+        # global serviceobject
+        # print "\n serviceobject is:", serviceobject
+        # (service, env) = serviceobject['TestRancherComposeLB']
+        #
+        # with open("myfile.pkl", "wb") as f:
+        #             pickle.load(serviceobject, f)
+        serviceobject = tests.validation.cattlevalidationtest.serviceobjects.serviceobject
+        print "\n serviceobject at test_rancher_compose_service is:", serviceobject
         (service, env) = serviceobject['TestRancherComposeLB']
+
         print "\n service is:", service
         print "\n env is:", env
         print "\n test name is:", self.tname
