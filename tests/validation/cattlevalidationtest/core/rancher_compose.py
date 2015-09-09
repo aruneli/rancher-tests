@@ -9,7 +9,6 @@ TEST_SERVICE_OPT_IMAGE_LATEST = TEST_SERVICE_OPT_IMAGE + ':latest'
 TEST_SERVICE_OPT_IMAGE_UUID = 'docker:' + TEST_SERVICE_OPT_IMAGE_LATEST
 LB_IMAGE_UUID = "docker:sangeetha/testlbsd:latest"
 logger = logging.getLogger(__name__)
-#serviceobject = {}
 
 
 # @pytest.mark.skipif(1 != 2, reason="blah blah")
