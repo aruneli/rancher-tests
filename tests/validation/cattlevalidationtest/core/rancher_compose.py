@@ -1,6 +1,7 @@
 from tests.validation.cattlevalidationtest.core.common_fixtures import *  # NOQA
 import pytest
 import pickle
+import sys
 
 TEST_SERVICE_OPT_IMAGE = 'ibuildthecloud/helloworld'
 TEST_SERVICE_OPT_IMAGE_LATEST = TEST_SERVICE_OPT_IMAGE + ':latest'
@@ -13,9 +14,11 @@ serviceobject = {}
 # @pytest.mark.skipif(1 != 2, reason="blah blah")
 class TestRancherComposeService:
 
+    tname = "TestRancherComposeService"
+
     @pytest.mark.create
     @pytest.mark.run(order=1)
-    def test_create_rancher_compose_lb_service(self, super_client, client):
+    def test_create_rancher_compose_lb_service(self, super_client, client, rancher_compose_container, socat_containers):
         vol_container = client.create_container(imageUuid=TEST_IMAGE_UUID,
                                                 name=random_str(),
                                                 labels={"c1": "vol"}
@@ -25,7 +28,8 @@ class TestRancherComposeService:
         volume_in_host = "/test/container"
         volume_in_container = "/test/vol1"
         docker_vol_value = volume_in_host + ":" + volume_in_container + ":ro"
-        dict['docker_vol_value'] = docker_vol_value
+
+        # dict['docker_vol_value'] = docker_vol_value
 
         cap_add = ["CHOWN"]
         cap_drop = ["KILL"]
@@ -62,101 +66,92 @@ class TestRancherComposeService:
                          "user": user,
                          "labels":
                              {"io.rancher.scheduler.affinity:container_label":
-                              "c1=vol"}
+                                  "c1=vol"}
                          }
 
         scale = 1
 
         service, env = create_env_and_svc(client, launch_config,
-                                          scale)
+                                          scale, self.tname)
 
         global serviceobject
-
-        pkl_file = open('myfile.pkl', 'wb')
-        #serviceobject = pickle.load(pkl_file)
-        #print (serviceobject["TestRancherComposeLB"])
-        #if (serviceobject["TestRancherComposeLB"] == ""):
-            # This condition is true in case of fresh validation test
-            # service, env = self.create_rancher_compose_service(super_client, client)
-            # print ("service ================ ", service)
-            # print ("env ============== ", env)
-        print ("**** CREATING NEW SERVICE ***")
-        serviceobject['TestRancherComposeLB'] = "BASE LB OBJECT"
-
-        print ("**** New Service created ****")
-        print ("**** New env created ****")
-        # else:
-        #     print "\n\n***** SINCE LB SERVICE OBJECT ALREADY EXISTS, SKIPPING CREATING NEW ONE and INSTEAD GOING TO VALIDATE ON PRE-CREATED OBJECT:\n\n"
-        #     service = serviceobject['TestRancherComposeLB']
-        #     print service
-
-        print(
-        "\n************************ CREATED LB OBJECT with BASE API VERSION ********************************************\n",
-        serviceobject)
-        output = open('myfile.pkl', 'wb')
-        pickle.dump(serviceobject, output)
-        output.close()
+        #
+        # pkl_file = open('myfile.pkl', 'wb')
+        # pickle.load(pkl_file)
+        serviceobject['TestRancherComposeLB'] = (service, env)
+        print("\n****** CREATED LB OBJECT with BASE API VERSION *****\n", serviceobject["TestRancherComposeLB"])
         return service, env
 
     @pytest.mark.validate_created
     @pytest.mark.run(order=2)
-    def test_rancher_compose_lb_service(self, super_client, client):
-
-        pkl_file = open('myfile.pkl', 'rb')
-        srvobj = serviceobject["TestRancherComposeLB"]
-        print("\n \n VALIDATING LB OBJECT WITH BASE API SERVER VERSION \n\n")
-        print srvobj
-        pkl_file.close()
-        print "\n\n********* SERVICE OBJECT OF LB **********\n\n", srvobj
-
+    def test_rancher_compose_lb_service(self, super_client, client, rancher_compose_container, socat_containers):
+        global serviceobject
+        (service, env) = serviceobject['TestRancherComposeLB']
+        print "\n service is:", service
+        print "\n env is:", env
+        print "\n test name is:", self.tname
+        print "\n client is:", client
         launch_rancher_compose(client, env, "service_options")
 
         rancher_envs = client.list_environment(name=env.name + "rancher")
-        assert len(rancher_envs) == 1
+        #assert len(rancher_envs) == 1
         rancher_env = rancher_envs[0]
+        print "\n rancher_env is:", rancher_env
+        # rancher_service = get_rancher_compose_service(
+        #     client, rancher_env.id, service)
 
-        rancher_service = get_rancher_compose_service(
-            client, rancher_env.id, service)
+        rancher_services = client.list_service(name=service.name,
+                                           environmentId=rancher_env.id,
+                                           removed_null=True)
+        print "\n rancher_services:", rancher_services
+        # assert len(rancher_services) == 1
+        # rancher_service = rancher_services[0]
+        # print service.kind
+        # if service.kind != 'externalService' and service.kind != 'dnsService':
+        #     assert rancher_service.scale == service.scale
+        # rancher_service = client.wait_success(rancher_service, 120)
+        #
+        # check_container_in_service(super_client, rancher_service)
+        #
+        # container_list = get_service_container_list(super_client, rancher_service)
+        # for c in container_list:
+        #     # print c
+        #     docker_client = get_docker_client(c.hosts[0])
+        #     inspect = docker_client.inspect_container(c.externalId)
+        #
+        #     assert inspect["HostConfig"]["Binds"] == [dict['docker_vol_value']]
+        #     # assert inspect["HostConfig"]["VolumesFrom"] == \
+        #     #        [vol_container.externalId]
+        #     assert inspect["HostConfig"]["PublishAllPorts"] is False
+        #     assert inspect["HostConfig"]["Privileged"] is True
+        #     assert inspect["Config"]["OpenStdin"] is True
+        #     assert inspect["Config"]["Tty"] is True
+        #     assert inspect["HostConfig"]["Dns"] == dict['dns_name']
+        #     assert inspect["HostConfig"]["DnsSearch"] == dict['dns_search']
+        #     assert inspect["Config"]["Hostname"] == dict['host_name']
+        #     assert inspect["Config"]["Domainname"] == dict['domain_name']
+        #     assert inspect["Config"]["User"] == dict['user']
+        #     assert inspect["HostConfig"]["CapAdd"] == dict['cap_add']
+        #     assert inspect["HostConfig"]["CapDrop"] == dict['cap_drop']
+        #     #        assert inspect["Config"]["Cpuset"] == cpu_set
+        #     assert inspect["HostConfig"]["RestartPolicy"]["Name"] == \
+        #            dict['restart_policy']["name"]
+        #     assert inspect["HostConfig"]["RestartPolicy"]["MaximumRetryCount"] == \
+        #            dict['restart_policy']["maximumRetryCount"]
+            # assert inspect["Config"]["Cmd"] == command
+            # assert inspect["Config"]["Memory"] == memory
+            # assert "TEST_FILE=/etc/testpath.conf" in inspect["Config"]["Env"]
+            # assert inspect["Config"]["CpuShares"] == cpu_shares
 
-        check_container_in_service(super_client, rancher_service)
-
-        container_list = get_service_container_list(super_client, rancher_service)
-        for c in container_list:
-            # print c
-            docker_client = get_docker_client(c.hosts[0])
-            inspect = docker_client.inspect_container(c.externalId)
-
-            assert inspect["HostConfig"]["Binds"] == [dict['docker_vol_value']]
-            assert inspect["HostConfig"]["VolumesFrom"] == \
-                   [vol_container.externalId]
-            assert inspect["HostConfig"]["PublishAllPorts"] is False
-            assert inspect["HostConfig"]["Privileged"] is True
-            assert inspect["Config"]["OpenStdin"] is True
-            assert inspect["Config"]["Tty"] is True
-            assert inspect["HostConfig"]["Dns"] == dict['dns_name']
-            assert inspect["HostConfig"]["DnsSearch"] == dict['dns_search']
-            assert inspect["Config"]["Hostname"] == dict['host_name']
-            assert inspect["Config"]["Domainname"] == dict['domain_name']
-            assert inspect["Config"]["User"] == dict['user']
-            assert inspect["HostConfig"]["CapAdd"] == dict['cap_add']
-            assert inspect["HostConfig"]["CapDrop"] == dict['cap_drop']
-            #        assert inspect["Config"]["Cpuset"] == cpu_set
-            assert inspect["HostConfig"]["RestartPolicy"]["Name"] == \
-                   restart_policy["name"]
-            assert inspect["HostConfig"]["RestartPolicy"]["MaximumRetryCount"] == \
-                   restart_policy["maximumRetryCount"]
-            assert inspect["Config"]["Cmd"] == command
-            assert inspect["Config"]["Memory"] == memory
-            assert "TEST_FILE=/etc/testpath.conf" in inspect["Config"]["Env"]
-            assert inspect["Config"]["CpuShares"] == cpu_shares
-
-        print("********************** VALIDATED LB BASE OBJECT with BASE API ****************************")
+        print("********************* VALIDATED LB BASE OBJECT with BASE API ***********************")
+        delete_all(client, [env, rancher_env])
 
 
 def get_rancher_compose_service(client, rancher_env_id, service):
     rancher_services = client.list_service(name=service.name,
                                            environmentId=rancher_env_id,
                                            removed_null=True)
+    print "rancher_services:", rancher_services
     assert len(rancher_services) == 1
     rancher_service = rancher_services[0]
     print service.kind
