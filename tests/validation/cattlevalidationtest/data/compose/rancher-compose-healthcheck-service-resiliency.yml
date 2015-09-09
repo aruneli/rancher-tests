@@ -1,0 +1,14 @@
+LB:
+  scale: 1
+  load_balancer_config:
+    name: LB config
+test:
+  scale: 100
+external:
+  hostname: yahoo.com
+nginxserver2:
+  scale: 100
+nginxserver1:
+  scale: 4
+DNSClient:
+  scale: 1

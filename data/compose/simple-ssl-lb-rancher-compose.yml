@@ -1,0 +1,11 @@
+lbsslnew:
+  scale: 3
+  load_balancer_config:
+    description: ''
+    name: lbsslnew config
+web1:
+  scale: 3
+web2:
+  scale: 3
+web3:
+  scale: 3

@@ -1,0 +1,387 @@
+#!/bin/bash
+
+set -e 
+
+if [ $(whoami) == "root" ]; then
+    echo "Do not run as root!" 1>&2
+    exit 1
+fi
+
+: ${GCE_PROJECT:="rancher-dev"}
+
+gcloud -v >/dev/null 2>&1 || {
+    echo "gcloud command not found." 1>&2
+    exit 1
+}
+
+print_help()
+{
+    cat 1>&2 <<EOF
+gce-10acre-ranch Usage:
+    gce-10acre-ranch [opts] 
+    -a - Agent Container:
+            needs full container repo/name[:tag]
+    -c - Cluster name[Required]
+    -d - DELETE ALL NODES
+    -e - External IP for master...(yes this is getting rediculous)
+    -i - Show the IP address of the master
+    -h - Print this message
+    -l - List nodes or clusters if no -c is passed
+    -n - Number of nodes [defaults to 3]
+    -s - Server Container:
+            needs full container repo/name[:tag] 
+    -o - OS image
+           centos-6 (Servers only. Configuration is manual)
+           centos-7 (Servers only. Configuration is manual)
+           rhel-6 (Servers only. Config is manual)
+           rhel-7 (Servers only. Config is manual)
+           coreos-<version>
+           coreos (stable)
+           debian-7-backports
+           fedora-21 (Rancher Labs Only)
+           ubuntu-<version>
+    -p - privileged (needed for fedora)
+        - server
+        - agent
+        - all
+    -q - Do not prompt user
+    -r - Registration url
+    -t - Test docker repos
+EOF
+}
+
+WAIT=true
+INSTANCE_COUNT=3
+OS_FAMILY=ubuntu-14-04
+DOCKER_URL="https://get.docker.com/"
+
+while getopts ":a:bc:de:hiln:o:p:qr:s:tw" opt;do
+    case $opt in
+    a)
+        AGENT_CONTAINER="${OPTARG}"
+        ;;
+    b)
+        echo "-b option deprecated. No longer needed"
+        ;;
+    c)
+        # Add 10acre so that you can't accidentally list/delete lots of hosts easily.
+        CLUSTER_NAME="${OPTARG}-10acre"
+        MASTER_NAME="${CLUSTER_NAME}-master-0"
+        ;;
+    d)
+        DELETE_NODES_FLAG="true"
+        ;;
+    e)
+        EXTERNAL_IP=${OPTARG}
+        ;;
+    h)
+        print_help
+        exit 1
+        ;;
+    i)
+        MASTER_IP_FLAG="true"
+        ;;
+    l)
+        LIST_NODES_FLAG="true"
+        ;;
+    n)
+        INSTANCE_COUNT=${OPTARG}
+        ;;
+    o)
+        OS_FAMILY=${OPTARG}
+        ;;
+    p)
+        case $OPTARG in
+            "server")
+                PRIVILEGED_MASTER="true"
+                ;;
+            "agent")
+                PRIVILEGED_AGENT="true"
+                ;;
+            "all")
+                PRIVILEGED_MASTER="true"
+                PRIVILEGED_AGENT="true"
+                ;;
+            * )
+                print_help
+                exit 1
+                ;;
+            esac
+        ;;
+    r)
+        REGISTRATION_URL="${OPTARG}"
+        ;;
+    q)
+        QUIET="true"
+        ;;
+    s)
+        SERVER_CONTAINER="${OPTARG}"
+        ;;
+    t)
+        DOCKER_URL="https://test.docker.com/"
+        ;;
+    w)
+        echo "-w Deprecated... now default behavior"
+        ;;
+    \?)
+        echo "Invalid arguemnts" >&2
+        print_help
+        exit 1
+        ;;
+    :)
+        echo "Option -${OPTARG} requires arguement." >&2
+        print_help
+        exit 1
+        ;;
+    esac
+done
+shift $((OPTIND-1))
+
+list_nodes()
+{
+    local opts
+
+    if [ -n "${CLUSTER_NAME}" ]; then
+        opts="--regex \"${CLUSTER_NAME}.*\""
+    fi
+
+    gcloud compute instances list --project ${GCE_PROJECT} --zone us-central1-f ${opts}
+}
+
+delete_nodes()
+{
+    local opts
+    local nodes
+
+    nodes=$(list_nodes | grep -v ^NAME | cut -d' ' -f1)
+
+    # This will prompt the user to confirm.
+    if [ ${QUIET} ]; then
+        opts="--quiet"
+    else
+        opts=""
+    fi
+
+    gcloud compute instances delete ${opts} --project ${GCE_PROJECT} --zone us-central1-f ${nodes}
+}
+
+get_master_ip()
+{
+    IP=$(gcloud compute instances describe "${MASTER_NAME}" --project ${GCE_PROJECT} --zone us-central1-f | grep natIP | cut -d':' -f2)
+    echo $IP
+}
+
+get_os_image()
+{
+    local image
+
+    # Has to be a better more dynamic way...that also isn't slow.
+    case $OS_FAMILY in
+        *-rancher-base)
+            image="https://www.googleapis.com/compute/v1/projects/rancher-dev/global/images/${OS_FAMILY}"
+            ;;
+        ubuntu*)
+            image="https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/${OS_FAMILY}"
+            ;;
+        coreos-*)
+            image="https://www.googleapis.com/compute/v1/projects/coreos-cloud/global/images/${OS_FAMILY}"
+            ;;
+        "coreos")
+            image="coreos"
+            ;;
+        "centos-6")
+            image="centos-6"
+            ;;
+        "centos-7")
+            image="centos-7"
+            ;;
+        "rhel-6")
+            image="rhel-6"
+            ;;
+        "rhel-7")
+            image="rhel-7"
+            ;;
+        "debian-7-backports")
+            image="debian-7-backports"
+            ;;
+        "fedora-21")
+            image="fedora-cloud-base-21-20141217"
+            ;;
+        *)
+            echo "Invalid OS Selection: $OS_FAMILY" 1>&2
+            exit 1
+            ;;
+    esac
+
+    echo "${image}"
+
+}
+
+get_user_data_flag()
+{
+    case $OS_FAMILY in
+        "fedora-21")
+            echo "true"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
+gcloud_create()
+{
+    # 1 - instance name
+    # 2 - startup script path/filename
+    # 3 - GCE tags
+    # 4 - Master IP Address
+
+    local metadata_key=startup-script
+    local gcloud_args
+
+    if [ "$(get_user_data_flag)" = "true" ]; then
+        metadata_key=user-data
+    fi
+
+    gcloud_args="--zone "us-central1-f" --machine-type "n1-standard-1" \
+        --network "default" \
+        --project "${GCE_PROJECT}" \
+        --metadata-from-file ${metadata_key}=${2} \
+        --maintenance-policy "MIGRATE" \
+        --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
+        --tags ${3} \
+        --image $(get_os_image) "
+
+    if [ ! -z ${4} ]; then
+        gcloud_args="${gcloud_args} --address ${4}"
+    fi
+
+    gcloud compute instances create ${1} \
+        $gcloud_args
+}
+
+get_reg_url()
+{
+    ## This is a bit hacky...
+    local reg_tokens_link
+    reg_tokens_link=$(curl -s -X POST http://${1}:8080/v1/registrationtokens?projectId=1a5|python -c'import json,sys; print(json.load(sys.stdin)["links"]["self"])')
+    sleep 1
+    echo $(curl -s -X GET $reg_tokens_link|python -c'import json,sys; print(json.load(sys.stdin)["registrationUrl"])')?projectId=1a5
+}
+
+
+generate_build_script() # signature: role container
+{
+    local container
+    local default_container
+    local build_file
+    local docker_opts
+    local docker_cmd
+
+    case $1 in
+        master)
+            default_container="rancher/server"
+
+            docker_opts=('"run"', '"-d"', '"-p"', '"8080:8080"');
+            build_file="/tmp/10acre-master-build.sh"
+            docker_cmd=
+
+            if [[ "${PRIVILEGED_MASTER}" = "true" ]]; then
+                docker_opts+=(, '"--privileged"')
+            fi
+
+            ;;
+        worker)
+            default_container="rancher/agent"
+
+            IP=$(get_master_ip)
+            docker_opts=('"run"', '"-d"', '"-v"', '"/var/run/docker.sock:/var/run/docker.sock"');
+
+            if [[ "${PRIVILEGED_AGENT}" = "true" ]]; then
+                docker_opts+=(, '"--privileged"')
+            fi
+
+            docker_cmd=${REGISTRATION_URL:="$(get_reg_url ${IP})"}
+            build_file="/tmp/10acre-worker-build.sh"
+            ;;
+        *)
+            echo "Can not generate build script"
+            exit 1
+            ;;
+    esac
+
+    if [ -z ${2} ]; then
+        container=${default_container}
+    else
+        container="${2}"
+    fi
+
+    if [ "$(get_user_data_flag)" = "true" ]; then
+        user_data_clusters $(id -un) "$(cat ~/.ssh/id_rsa.pub)" ${build_file} "${container}" "${DOCKER_URL}" "${docker_cmd}" "${docker_opts[@]}"
+    else
+            cat > ${build_file} << EOF
+#!/bin/bash
+
+curl -sSL --retry 5 --retry-delay 10 ${DOCKER_URL}| sh
+sleep 5
+docker $(echo ${docker_opts[@]}| sed -e 's/,//g'|sed -e 's/\"//g') ${container} ${docker_cmd}
+EOF
+    fi
+
+}
+
+build_master()
+{
+    generate_build_script "master" "${SERVER_CONTAINER}" 
+    gcloud_create "${MASTER_NAME}" "/tmp/10acre-master-build.sh" "alt-http-server" ${EXTERNAL_IP}
+}
+
+build_compute()
+{
+    local instances
+    
+    for i in $(seq 1 ${INSTANCE_COUNT}); do
+        instances="${CLUSTER_NAME}-${i} ${instances}"
+    done
+
+    generate_build_script "worker" "${AGENT_CONTAINER}"
+    gcloud_create "${instances}" "/tmp/10acre-worker-build.sh" "alt-http-server,open-compute-nodes"
+}
+
+build_cluster()
+{
+    build_master
+    if [ "$WAIT" = "true" ]; then
+        IP=$(get_master_ip)
+        echo -n "Waiting for server to start "
+        while sleep 5; do
+            if [ "$(curl -s http://${IP}:8080/ping)" = "pong" ]; then
+                echo Success
+                break
+            fi
+            echo -n "."
+        done
+    fi
+    build_compute
+}
+
+main() 
+{
+    if [[ "${LIST_NODES_FLAG}" = "true" && -z "${CLUSTER_NAME}" ]]; then
+        list_nodes | grep -- '-10acre-master-' | sed -e 's/^\(.*\)\(-10acre-master.*\)$/\1/' | sort -u
+    elif [[ "${LIST_NODES_FLAG}" = "true" && "${CLUSTER_NAME}" ]]; then
+        list_nodes 
+    elif [ "${MASTER_IP_FLAG}" = "true" ]; then
+        get_master_ip
+    elif [[ "${DELETE_NODES_FLAG}" = "true" && -n "${CLUSTER_NAME}" ]]; then 
+        delete_nodes
+    elif [[ -n "${INSTANCE_COUNT}" && -n "${CLUSTER_NAME}" ]]; then
+        build_cluster
+    else
+        echo "Unable to take action" 1>&2
+        print_help
+        exit 1
+    fi
+}
+
+main

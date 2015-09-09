@@ -1,0 +1,6 @@
+db:
+  scale: 2
+wordpress:
+  scale: 3
+DNSClient:
+  scale: 1

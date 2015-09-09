@@ -1,0 +1,62 @@
+etcd-lb:
+  image: rancher/load-balancer-service
+  ports:
+    - 2379
+  links:
+    - etcd0
+    - etcd1
+    - etcd2
+
+etcd0:
+  image: quay.io/coreos/etcd:v2.1.1
+  links:
+    - etcd1
+    - etcd2
+  ports:
+    - 2380
+    - 2379
+  command:
+    - --name=etcd0
+    - --initial-cluster-token=etcd-cluster-1
+    - --initial-cluster=etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+    - --initial-cluster-state=new
+    - --initial-advertise-peer-urls=http://etcd0:2380
+    - --listen-client-urls=http://0.0.0.0:2379
+    - --listen-peer-urls=http://0.0.0.0:2380
+    - --advertise-client-urls=http://etcd0:2379
+
+etcd1:
+  image: quay.io/coreos/etcd:v2.1.1
+  links:
+    - etcd0
+    - etcd2
+  ports:
+    - 2380
+    - 2379
+  command:
+    - --name=etcd1
+    - --initial-cluster-token=etcd-cluster-1
+    - --initial-cluster=etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+    - --initial-cluster-state=new
+    - --initial-advertise-peer-urls=http://etcd1:2380
+    - --listen-client-urls=http://0.0.0.0:2379
+    - --listen-peer-urls=http://0.0.0.0:2380
+    - --advertise-client-urls=http://etcd1:2379
+
+etcd2:
+  image: quay.io/coreos/etcd:v2.1.1
+  links:
+    - etcd0
+    - etcd1
+  ports:
+    - 2380
+    - 2379
+  command:
+    - --name=etcd2
+    - --initial-cluster-token=etcd-cluster-1
+    - --initial-cluster=etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+    - --initial-cluster-state=new
+    - --initial-advertise-peer-urls=http://etcd2:2380
+    - --listen-client-urls=http://0.0.0.0:2379
+    - --listen-peer-urls=http://0.0.0.0:2380
+    - --advertise-client-urls=http://etcd2:2379

@@ -1,0 +1,8 @@
+etcd-lb:
+  scale: 1
+etcd0:
+  scale: 2
+etcd1:
+  scale: 2
+etcd2:
+  scale: 2

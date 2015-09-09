@@ -1,0 +1,6 @@
+web2:
+web2new:
+  restart: always
+  tty: true
+  image: nginx:latest
+  stdin_open: true

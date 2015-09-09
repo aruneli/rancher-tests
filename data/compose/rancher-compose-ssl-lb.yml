@@ -1,0 +1,28 @@
+test1:
+  scale: 2
+testclient2:
+  scale: 1
+lb-testsslnow:
+  scale: 1
+  load_balancer_config:
+    description: lb-testsslnow
+    name: lb-testsslnow config
+testclient1:
+  scale: 3
+ext1:
+  external_ips:
+  - 10.42.104.82
+  - 10.42.198.227
+ext2:
+  hostname: google.com
+testclient:
+  scale: 1
+testweb4:
+  scale: 3
+lb-testsslnow123:
+  scale: 1
+  load_balancer_config:
+    description: lb-testsslnow
+    name: lb-testsslnow123 config
+testweb3:
+  scale: 3

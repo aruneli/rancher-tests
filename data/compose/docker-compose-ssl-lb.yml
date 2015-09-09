@@ -1,0 +1,80 @@
+test1:
+  ports:
+  - 2222:80/tcp
+  - 2221:81/tcp
+  restart: always
+  tty: true
+  image: sangeetha/testnewhostrouting
+  stdin_open: true
+testclient2:
+  restart: always
+  tty: true
+  image: sangeetha/testclient
+  links:
+  - ext2:testext2link
+  stdin_open: true
+lb-testsslnow:
+  ports:
+  - 441:80
+  - 442:81
+  restart: always
+  labels:
+    io.rancher.loadbalancer.ssl.ports: '441'
+    io.rancher.loadbalancer.target.testweb3: abc
+    io.rancher.loadbalancer.target.testweb4: def
+  tty: true
+  image: rancher/load-balancer-service
+  links:
+  - testweb3:testweb3
+  - testweb4:testweb4
+  stdin_open: true
+testclient1:
+  restart: always
+  external_links:
+  - testme/test5:yello
+  tty: true
+  image: sangeetha/testclient
+  links:
+  - ext1:extlink
+  - test1:mytest1
+  stdin_open: true
+ext1:
+  image: rancher/external-service
+ext2:
+  image: rancher/external-service
+testalias:
+  image: rancher/dns-service
+  links:
+  - 'testweb3:'
+  - 'testweb4:'
+testclient:
+  restart: always
+  tty: true
+  image: sangeetha/testclient
+  links:
+  - testalias:linkme
+  stdin_open: true
+testweb4:
+  restart: always
+  tty: true
+  image: sangeetha/testnewhostrouting
+  stdin_open: true
+lb-testsslnow123:
+  ports:
+  - 4410:80
+  restart: always
+  labels:
+    io.rancher.loadbalancer.ssl.ports: '4410'
+    io.rancher.loadbalancer.target.testweb3: abc
+    io.rancher.loadbalancer.target.testweb4: def
+  tty: true
+  image: rancher/load-balancer-service
+  links:
+  - testweb3:testweb3
+  - testweb4:testweb4
+  stdin_open: true
+testweb3:
+  restart: always
+  tty: true
+  image: sangeetha/testnewhostrouting
+  stdin_open: true
