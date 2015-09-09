@@ -82,7 +82,7 @@ class TestRancherComposeService:
         #             pickle.dump(serviceobject, f)
 
         print("\n****** CREATED SERVICE OBJECT *****\n",  serviceobject["TestRancherComposeLB"])
-        return service, env
+        # return service, env
 
     @pytest.mark.validate_created
     @pytest.mark.run(order=2)
