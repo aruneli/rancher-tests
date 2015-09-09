@@ -1043,11 +1043,11 @@ def launch_rancher_compose(client, env, testname):
     #print cmd
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
-    #print str(response)
+    print "response:", str(response)
     expected_resp = "Creating environment " + project_name
     found = False
     for resp in response:
-        if expected_resp in resp:
+        if expected_resp not in resp:
             found = True
     assert found
 
@@ -1230,11 +1230,28 @@ def create_env_with_ext_svc(client, scale_svc, port):
     return env, service, ext_service, con_list
 
 
-def create_env_and_svc(client, launch_config, scale):
+# def create_env_and_svc(client, launch_config, scale, testname):
+#
+#     env = createrancher_services = client.list_service(name=service.name,
+#                                            environmentId=rancher_env_id,
+#                                            removed_null=True)
+#     print "rancher_services:", rancher_services
+#     assert len(rancher_services) == 1
+#     rancher_service = rancher_services[0]
+#     print service.kind
+#     if service.kind != 'externalService' and service.kind != 'dnsService':
+#         assert rancher_service.scale == service.scale
+#     rancher_service = client.wait_success(rancher_service, 120)_env(client, testname)
+#     service = create_svc(client, env, launch_config, scale, testname)
+#     return service, env
 
-    env = create_env(client)
-    service = create_svc(client, env, launch_config, scale)
+
+def create_env_and_svc(client, launch_config, scale, testname):
+
+    env = create_env(client, testname)
+    service = create_svc(client, env, launch_config, scale, testname)
     return service, env
+
 
 
 def check_container_in_service(super_client, service):
@@ -1254,10 +1271,11 @@ def check_container_in_service(super_client, service):
         assert inspect["State"]["Running"]
 
 
-def create_svc(client, env, launch_config, scale):
+def create_svc(client, env, launch_config, scale, testname):
 
-    random_name = random_str()
-    service_name = random_name.replace("-", "")
+    #random_name = random_str()
+    #service_name = random_name.replace("-", "")
+    service_name = testname
     service = client.create_service(name=service_name,
                                     environmentId=env.id,
                                     launchConfig=launch_config,
@@ -1506,9 +1524,10 @@ def get_plain_id(admin_client, obj=None):
     return ret[0].id
 
 
-def create_env(client):
-    random_name = random_str()
-    env_name = random_name.replace("-", "")
+def create_env(client, testname):
+    #random_name = random_str()
+    #env_name = random_name.replace("-", "")
+    env_name = testname
     env = client.create_environment(name=env_name)
     env = client.wait_success(env)
     assert env.state == "active"
