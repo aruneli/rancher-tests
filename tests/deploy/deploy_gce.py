@@ -4,7 +4,7 @@ import subprocess as sub
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
+import pexpect
 
 def deploy_gce():
     parser = argparse.ArgumentParser()
