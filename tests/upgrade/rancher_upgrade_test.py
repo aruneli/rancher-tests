@@ -9,7 +9,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 import time
-import tests.validation.cattlevalidationtest.serviceobjects
+from tests.validation.cattlevalidationtest.serviceobjects import MyGlobals
 
 
 
@@ -31,8 +31,7 @@ def upgrade_test(base, target, servernode):
     #global serviceobject
     #(service, env) = serviceobject['TestRancherComposeLB']
     #print ("\n service and env before server upgrade: \n", service, env)
-    serviceobject = tests.validation.cattlevalidationtest.serviceobjects.serviceobject
-    print serviceobject
+    print MyGlobals.serviceobject
     upgrade_rancher_server(base, target, servernode)
     # Wait until rancher server is upgraded. If server upgrade failed, exit here with message
     # After rancher server is successfully upgraded,
@@ -45,8 +44,7 @@ def upgrade_test(base, target, servernode):
     #print ("\n service and env after server upgrade: \n", service, env)
     #serviceobj = _get_service_object(serviceobject)
     # TO-DO: GET THE LIST OF SERVICES SUCCESSFULLY CREATED
-    serviceobject = tests.validation.cattlevalidationtest.serviceobjects.serviceobject
-    print serviceobject
+    print MyGlobals.serviceobject
     print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET API ********** \n")
     os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/rancher_compose.py -v -m validate_created -s")
 

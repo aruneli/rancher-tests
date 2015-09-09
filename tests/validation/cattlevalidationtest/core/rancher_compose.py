@@ -2,7 +2,7 @@ from tests.validation.cattlevalidationtest.core.common_fixtures import *  # NOQA
 import pytest
 import pickle
 import sys
-import tests.validation.cattlevalidationtest.serviceobjects
+from tests.validation.cattlevalidationtest.serviceobjects import MyGlobals
 
 TEST_SERVICE_OPT_IMAGE = 'ibuildthecloud/helloworld'
 TEST_SERVICE_OPT_IMAGE_LATEST = TEST_SERVICE_OPT_IMAGE + ':latest'
@@ -76,13 +76,13 @@ class TestRancherComposeService:
         service, env = create_env_and_svc(client, launch_config,
                                           scale, self.tname)
 
-        tests.validation.cattlevalidationtest.serviceobjects.serviceobject['TestRancherComposeLB'] = (service, env)
-        print "\n serviceobject at test_create_rancher_compose_service is:", tests.validation.cattlevalidationtest.serviceobjects.serviceobject
+        MyGlobals.serviceobject['TestRancherComposeLB'] = (service, env)
+        print "\n serviceobject at test_create_rancher_compose_service is:",  MyGlobals.serviceobject
 
         # with open("myfile.pkl", "wb") as f:
         #             pickle.dump(serviceobject, f)
 
-        print("\n****** CREATED SERVICE OBJECT *****\n", tests.validation.cattlevalidationtest.serviceobjects.serviceobject["TestRancherComposeLB"])
+        print("\n****** CREATED SERVICE OBJECT *****\n",  MyGlobals.serviceobject["TestRancherComposeLB"])
         return service, env
 
     @pytest.mark.validate_created
@@ -93,8 +93,8 @@ class TestRancherComposeService:
         #
         # with open("myfile.pkl", "wb") as f:
         #             pickle.load(serviceobject, f)
-        print "\n serviceobject at test_rancher_compose_service is:",  tests.validation.cattlevalidationtest.serviceobjects.serviceobject
-        (service, env) =  tests.validation.cattlevalidationtest.serviceobjects.serviceobject['TestRancherComposeLB']
+        print "\n serviceobject at test_rancher_compose_service is:",  MyGlobals.serviceobject
+        (service, env) =  MyGlobals.serviceobject['TestRancherComposeLB']
 
         print "\n service is:", service
         print "\n env is:", env
