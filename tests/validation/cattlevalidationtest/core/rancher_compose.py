@@ -76,7 +76,7 @@ class TestRancherComposeService:
         service, env = create_env_and_svc(client, launch_config,
                                           scale, self.tname)
 
-        #global serviceobject
+        global serviceobject
         serviceobject = tests.validation.cattlevalidationtest.serviceobjects.serviceobject
         serviceobject['TestRancherComposeLB'] = (service, env)
         print "\n serviceobject at test_create_rancher_compose_service is:", serviceobject
@@ -90,7 +90,7 @@ class TestRancherComposeService:
     @pytest.mark.validate_created
     @pytest.mark.run(order=2)
     def test_rancher_compose_service(self, super_client, client, rancher_compose_container, socat_containers):
-        # global serviceobject
+        global serviceobject
         # print "\n serviceobject is:", serviceobject
         # (service, env) = serviceobject['TestRancherComposeLB']
         #
