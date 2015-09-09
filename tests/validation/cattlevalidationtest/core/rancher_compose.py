@@ -100,19 +100,19 @@ class TestRancherComposeService:
         print "\n env is:", env
         print "\n test name is:", self.tname
         print "\n client is:", client
-        launch_rancher_compose(client, env, "service_options")
-
-        rancher_envs = client.list_environment(name=env.name + "rancher")
+        # launch_rancher_compose(client, env, "service_options")
+        #
+        # rancher_envs = client.list_environment(name=env.name + "rancher")
         #assert len(rancher_envs) == 1
-        rancher_env = rancher_envs[0]
-        print "\n rancher_env is:", rancher_env
+        # rancher_env = rancher_envs[0]
+        # print "\n rancher_env is:", rancher_env
         # rancher_service = get_rancher_compose_service(
         #     client, rancher_env.id, service)
 
-        rancher_services = client.list_service(name=service.name,
-                                           environmentId=rancher_env.id,
-                                           removed_null=True)
-        print "\n rancher_services:", rancher_services
+        # rancher_services = client.list_service(name=service.name,
+        #                                    environmentId=rancher_env.id,
+        #                                    removed_null=True)
+        # print "\n rancher_services:", rancher_services
         # assert len(rancher_services) == 1
         # rancher_service = rancher_services[0]
         # print service.kind
@@ -153,7 +153,7 @@ class TestRancherComposeService:
             # assert inspect["Config"]["CpuShares"] == cpu_shares
 
         print("********************* VALIDATED LB BASE OBJECT ***********************")
-        delete_all(client, [env, rancher_env])
+        # delete_all(client, [env, rancher_env])
 
 
 def get_rancher_compose_service(client, rancher_env_id, service):
