@@ -1,4 +1,4 @@
-from tests.validation.cattlevalidationtest.core.common_fixtures import *  # NOQA
+from common_fixtures import *  # NOQA
 import pytest
 
 TEST_SERVICE_OPT_IMAGE = 'ibuildthecloud/helloworld'
@@ -145,6 +145,8 @@ class TestRancherComposeLBService:
     @pytest.mark.run(order=1)
     def test_rancher_compose_lbservice_create(self, super_client, client,
                                               rancher_compose_container):
+        print "\n\n\n client is:", client
+
         port = "7900"
 
         # Add LB service and do not activate services
@@ -175,6 +177,7 @@ class TestRancherComposeLBService:
 
         launch_rancher_compose(client, env, self.tname)
         delete_all(super_client, [env])
+        client.delete()
 
 
     @pytest.mark.validate
@@ -231,8 +234,7 @@ class TestRancherComposeLBService:
         #delete_all(super_client, [env1])
 
 
-def get_rancher_compose_service(client, rancher_env_id, service, testname):
-    print "\n\n\n testname is needed for get_rancher_compose_service in 0.37.0 "
+def get_rancher_compose_service(client, rancher_env_id, service):
     rancher_services = client.list_service(name=service.name,
                                            environmentId=rancher_env_id,
                                            removed_null=True)
