@@ -22,14 +22,14 @@ def upgrade_test(base, target, servernode):
     print ("\n ********** CREATING SERVICES NOW IN BASE SETUP ********** \n")
     os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/test_rancher_compose.py -v -m create -s")
     upgrade_rancher_server(base, target, servernode)
-    #os.system("mkdir ../validation/cattlevalidationtest/core_target")
+    os.system("mkdir ../validation/cattlevalidationtest/core_target")
     os.system("mkdir ../../tmp")
     os.chdir("../../tmp")
     os.system("git clone -b "+target+" https://github.com/aruneli/rancher-tests.git")
-    os.system("mv ../tests/validation/cattlevalidationtest/common_fixtures.py ../tests/validation/cattlevalidationtest/common_fixtures_bk.py")
-    os.system("cp rancher-tests/tests/validation/cattlevalidationtest/common_fixtures.py ../tests/validation/cattlevalidationtest/")
+    os.system("cp rancher-tests/tests/validation/cattlevalidationtest/core/* ../tests/validation/cattlevalidationtest/core_target/")
     print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET ********** \n")
-    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/test_rancher_compose.py -v -m validate -s")
+    os.chdir("../validation/cattlevalidationtest/core_target")
+    os.system("py.test test_rancher_compose.py -v -m validate -s")
 
 
 def upgrade_rancher_server(base, target, servernode):
