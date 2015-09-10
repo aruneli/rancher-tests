@@ -183,7 +183,7 @@ class TestRancherComposeLBService:
 
     @pytest.mark.validate
     @pytest.mark.run(order=2)
-    def test_rancher_compose_lbservice_validate(self, super_client, client,
+    def test_rancher_compose_lbservice_validate(super_client, client,
                                                 rancher_compose_container):
 
         tname = "TestRancherComposeLBService"
