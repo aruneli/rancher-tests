@@ -26,7 +26,7 @@ def upgrade_test(base, target, servernode):
     os.system("mkdir ../../tmp")
     os.chdir("../../tmp")
     os.system("git clone -b "+target+" https://github.com/aruneli/rancher-tests.git")
-    os.system("cp -r ../tests/validation/cattlevalidationtest/core/* ../tests/validation/cattlevalidationtest/core_target")
+    os.system("cp ../tests/validation/cattlevalidationtest/core/test_rancher_compose.py ../tests/validation/cattlevalidationtest/core_target")
     print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET ********** \n")
     os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/test_rancher_compose.py -v -m validate -s")
 
@@ -51,11 +51,11 @@ def upgrade_rancher_server(base, target, servernode):
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker pull rancher/server:v"+target+"rc-1"
+    cmd = "sudo docker pull rancher/server:v"+target+"-rc1"
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target+"rc-1"
+    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target+"-rc1"
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
