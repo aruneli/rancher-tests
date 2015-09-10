@@ -1,4 +1,4 @@
-from common_fixtures import *  # NOQA
+from tests.validation.cattlevalidationtest.common_fixtures import *  # NOQA
 import pytest
 
 TEST_SERVICE_OPT_IMAGE = 'ibuildthecloud/helloworld'

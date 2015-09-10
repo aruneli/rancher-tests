@@ -1,4 +1,4 @@
-from common_fixtures import *  # NOQA
+from tests.validation.cattlevalidationtest.common_fixtures import *  # NOQA
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

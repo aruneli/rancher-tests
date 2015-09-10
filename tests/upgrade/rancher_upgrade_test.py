@@ -15,19 +15,7 @@ def main():
     parser.add_argument('-s', help='server node')
     args = parser.parse_args()
     print args.b, args.t, args.s
-    current_rancher_server_version(args.s)
     upgrade_test(args.b, args.t, args.s)
-
-
-def current_rancher_server_version(server):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    privatekeyfile = os.path.expanduser('~/.ssh/google_compute_engine')
-    mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-    ssh.connect(server, username='aruneli', pkey=mykey)
-    stdin, stdout, stderr = ssh.exec_command("sudo docker ps -a | awk ' NR>1 {print $2}' | cut -d \: -f 2 | cut -d \\v -f 2")
-    tag_of_rancher_server = stdout.readlines()[0].strip("\n")
-    print "Current server version is: ", tag_of_rancher_server
 
 
 def upgrade_test(base, target, servernode):
@@ -63,11 +51,11 @@ def upgrade_rancher_server(base, target, servernode):
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker pull rancher/server:v"+target+"-rc1"
+    cmd = "sudo docker pull rancher/server:v"+target+"rc-1"
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target+"-rc1"
+    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target+"rc-1"
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
