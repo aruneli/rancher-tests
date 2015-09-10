@@ -175,13 +175,14 @@ class TestRancherComposeLBService:
 
         launch_rancher_compose(client, env, self.tname)
         delete_all(super_client, [env])
-        client.delete()
 
 
     @pytest.mark.validate
     @pytest.mark.run(order=2)
     def test_rancher_compose_lbservice_validate(self, super_client, client,
                                                 rancher_compose_container):
+
+        print "\n\n\n client is:", client
         port = "7900"
         env1 = client.list_environment(name="testranchercomposelbservicerancher")
         print "\n\n\n env is:", env1
