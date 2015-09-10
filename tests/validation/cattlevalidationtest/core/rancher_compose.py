@@ -11,7 +11,7 @@ LB_IMAGE_UUID = "docker:sangeetha/testlbsd:latest"
 logger = logging.getLogger(__name__)
 
 
-# @pytest.mark.skipif(1 != 2, reason="blah blah")
+@pytest.mark.skipif(1 != 2, reason="blah blah")
 class TestRancherComposeService:
 
     tname = "TestRancherComposeService"
@@ -145,7 +145,75 @@ class TestRancherComposeService:
             # assert inspect["Config"]["CpuShares"] == cpu_shares
 
         print("********************* VALIDATED LB BASE OBJECT ***********************")
-        delete_all(client, [env])
+        #delete_all(client, [env])
+
+
+
+class TestRancherComposeLBService:
+
+    tname = "TestRancherComposeLBService"
+
+
+    def test_rancher_compose_lbservice_create(super_client, client,
+                                       rancher_compose_container):
+
+        port = "7900"
+
+        # Add LB service and do not activate services
+        service_scale = 2
+        lb_scale = 1
+
+        env, service, lb_service = create_env_with_svc_and_lb(
+            client, service_scale, lb_scale, port)
+
+        service_link = {"serviceId": service.id, "ports": ["80"]}
+        lb_service.addservicelink(serviceLink=service_link)
+
+        validate_add_service_link(super_client, lb_service, service)
+
+        # Add another service link to the LB service
+        launch_config = {"imageUuid": WEB_IMAGE_UUID}
+        service_name = random_str()
+        service1 = client.create_service(name=service_name,
+                                         environmentId=env.id,
+                                         launchConfig=launch_config,
+                                         scale=2)
+        service1 = client.wait_success(service1)
+        assert service1.state == "inactive"
+
+        service_link = {"serviceId": service1.id, "ports": ["80"]}
+        lb_service.addservicelink(serviceLink=service_link)
+        validate_add_service_link(super_client, lb_service, service1)
+
+        launch_rancher_compose(client, env, "lb_service")
+
+
+      def test_rancher_compose_lbservice(super_client, client,
+                                       rancher_compose_container):
+
+        rancher_envs = client.list_environment(name=env.name+"rancher")
+        assert len(rancher_envs) == 1
+        rancher_env = rancher_envs[0]
+
+        rancher_service = get_rancher_compose_service(
+            client, rancher_env.id, service)
+        rancher_service1 = get_rancher_compose_service(
+            client, rancher_env.id, service1)
+        rancher_lb_service = get_rancher_compose_service(
+            client, rancher_env.id, lb_service)
+
+        client.wait_success(rancher_service)
+        client.wait_success(rancher_service1)
+        client.wait_success(rancher_lb_service)
+        validate_add_service_link(
+            super_client, rancher_lb_service, rancher_service)
+        validate_add_service_link(
+            super_client, rancher_lb_service, rancher_service1)
+
+        validate_lb_service(super_client, client, rancher_lb_service, port,
+                            [rancher_service, rancher_service1])
+        delete_all(client, [env, rancher_env])
+
 
 
 def get_rancher_compose_service(client, rancher_env_id, service):
