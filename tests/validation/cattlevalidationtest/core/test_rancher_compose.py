@@ -212,11 +212,11 @@ class TestRancherComposeLBService:
         print "\n\n\n rancher_env is:", rancher_env
 
         rancher_service = get_rancher_compose_service(
-            client, rancher_env.id, service)
+            client, rancher_env.id, service, self.tname)
         rancher_service1 = get_rancher_compose_service(
-            client, rancher_env.id, service1)
+            client, rancher_env.id, service1, self.tname)
         rancher_lb_service = get_rancher_compose_service(
-            client, rancher_env.id, lb_service)
+            client, rancher_env.id, lb_service, self.tname)
 
         client.wait_success(rancher_service)
         client.wait_success(rancher_service1)
@@ -231,7 +231,8 @@ class TestRancherComposeLBService:
         #delete_all(super_client, [env1])
 
 
-def get_rancher_compose_service(client, rancher_env_id, service):
+def get_rancher_compose_service(client, rancher_env_id, service, testname):
+    print "\n\n\n testname is needed for get_rancher_compose_service in 0.37.0 "
     rancher_services = client.list_service(name=service.name,
                                            environmentId=rancher_env_id,
                                            removed_null=True)
