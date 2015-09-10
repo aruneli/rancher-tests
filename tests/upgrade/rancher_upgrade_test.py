@@ -1,7 +1,4 @@
-import sys
-import pickle
 import os
-import subprocess as sub
 import argparse
 import paramiko
 import logging
@@ -9,7 +6,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 import time
-from tests.validation.cattlevalidationtest.serviceobjects import serviceobject
 
 
 def main():
@@ -24,35 +20,15 @@ def main():
 
 def upgrade_test(base, target, servernode):
     print ("\n ********** CREATING SERVICES NOW IN BASE SETUP ********** \n")
-    # TO-DO: Get the logs from below run
     os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/rancher_compose.py -v -m create -s")
-    # Print global dict to make sure object created in base is stored
-    #global serviceobject
-    #(service, env) = serviceobject['TestRancherComposeLB']
-    #print ("\n service and env before server upgrade: \n", service, env)
-    print serviceobject
     upgrade_rancher_server(base, target, servernode)
-    # Wait until rancher server is upgraded. If server upgrade failed, exit here with message
-    # After rancher server is successfully upgraded,
     os.system("mkdir ../validation/cattlevalidationtest/core_target")
     os.system("mkdir ../../tmp")
     os.chdir("../../tmp")
     os.system("git clone -b "+target+" https://github.com/aruneli/rancher-tests.git")
     os.system("cp -r ../tests/validation/cattlevalidationtest/core/* ../tests/validation/cattlevalidationtest/core_target")
-    # Print global dict to make sure object created in base is retained after server upgrade
-    #print ("\n service and env after server upgrade: \n", service, env)
-    #serviceobj = _get_service_object(serviceobject)
-    # TO-DO: GET THE LIST OF SERVICES SUCCESSFULLY CREATED
-    print serviceobject
-    print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET API ********** \n")
-    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/rancher_compose.py -v -m validate_created -s")
-
-
-# def _get_service_object(serviceobject):
-#     pkl_file = open('myfile.pkl', 'rb')
-#     serviceobj = pickle.load(pkl_file)
-#     pkl_file.close()
-#     return serviceobj
+    print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET ********** \n")
+    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/rancher_compose.py -v -m validate -s")
 
 
 def upgrade_rancher_server(base, target, servernode):

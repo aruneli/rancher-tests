@@ -1,6 +1,0 @@
-(dp0
-S'TestRancherComposeDNS'
-p1
-S'TARGET DNS OBJECT'
-p2
-s.

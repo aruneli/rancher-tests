@@ -9,6 +9,7 @@ import paramiko
 import inspect
 import re
 from docker import Client
+from urlparse import urlparse
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -665,10 +666,13 @@ def validate_lb_service(super_client, client, lb_service, port,
     assert len(lbs) == 1
 
     lb = lbs[0]
-
+    print "\n\n\n lb is:", lb
     host_maps = client.list_loadBalancerHostMap(loadBalancerId=lb.id,
                                                 removed_null=True,
                                                 state="active")
+    print "\n\n\n host_maps is:", host_maps
+    print "\n\n\n length of host_maps is:", len(host_maps)
+    print "\n\n\n Expected lb service scale is:", lb_service.scale
     assert len(host_maps) == lb_service.scale
     lb_hosts = []
 
@@ -1040,10 +1044,10 @@ def launch_rancher_compose(client, env, testname):
         rancher_compose_con["host"].ipAddresses()[0].address, username="root",
         password="root", port=int(rancher_compose_con["port"]))
     cmd = cmd1+";"+cmd2+";"+cmd3+";"+cmd4+";"+cmd5+";"+cmd6+";"+cmd7
-    #print cmd
+    print cmd
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
-    print "response:", str(response)
+    print "\n\n\n response is:", str(response)
     expected_resp = "Creating environment " + project_name
     found = False
     for resp in response:
@@ -1052,18 +1056,17 @@ def launch_rancher_compose(client, env, testname):
     assert found
 
 
-def create_env_with_svc_and_lb(client, scale_svc, scale_lb, port):
+def create_env_with_svc_and_lb(client, scale_svc, scale_lb, port, testname):
 
     launch_config_svc = {"imageUuid": WEB_IMAGE_UUID}
 
     launch_config_lb = {"ports": [port+":80"]}
 
     # Create Environment
-    env = create_env(client)
+    env = create_env(client, testname)
 
     # Create Service
-    random_name = random_str()
-    service_name = random_name.replace("-", "")
+    service_name = testname
     service = client.create_service(name=service_name,
                                     environmentId=env.id,
                                     launchConfig=launch_config_svc,
@@ -1073,11 +1076,10 @@ def create_env_with_svc_and_lb(client, scale_svc, scale_lb, port):
     assert service.state == "inactive"
 
     # Create LB Service
-    random_name = random_str()
-    service_name = "LB-" + random_name.replace("-", "")
+    lb_service_name = testname + "LB"
 
     lb_service = client.create_loadBalancerService(
-        name=service_name,
+        name=lb_service_name,
         environmentId=env.id,
         launchConfig=launch_config_lb,
         scale=scale_lb)
@@ -1228,22 +1230,6 @@ def create_env_with_ext_svc(client, scale_svc, port):
     assert ext_service.state == "inactive"
 
     return env, service, ext_service, con_list
-
-
-# def create_env_and_svc(client, launch_config, scale, testname):
-#
-#     env = createrancher_services = client.list_service(name=service.name,
-#                                            environmentId=rancher_env_id,
-#                                            removed_null=True)
-#     print "rancher_services:", rancher_services
-#     assert len(rancher_services) == 1
-#     rancher_service = rancher_services[0]
-#     print service.kind
-#     if service.kind != 'externalService' and service.kind != 'dnsService':
-#         assert rancher_service.scale == service.scale
-#     rancher_service = client.wait_success(rancher_service, 120)_env(client, testname)
-#     service = create_svc(client, env, launch_config, scale, testname)
-#     return service, env
 
 
 def create_env_and_svc(client, launch_config, scale, testname):
@@ -1525,8 +1511,6 @@ def get_plain_id(admin_client, obj=None):
 
 
 def create_env(client, testname):
-    #random_name = random_str()
-    #env_name = random_name.replace("-", "")
     env_name = testname
     env = client.create_environment(name=env_name)
     env = client.wait_success(env)
