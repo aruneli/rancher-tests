@@ -8,7 +8,6 @@ logger.setLevel(logging.DEBUG)
 import time
 from tests.validation.cattlevalidationtest.core.common_fixtures import *  # NOQA
 
-print
 
 def main():
     parser = argparse.ArgumentParser()
@@ -17,7 +16,7 @@ def main():
     args = parser.parse_args()
     logger.info(args)
     current_rancher_server_version(args.s)
-    #upgrade_rancher_server(args.t, args.s)
+    upgrade_rancher_server(args.t, args.s)
 
 
 def current_rancher_server_version(server):

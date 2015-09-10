@@ -175,6 +175,7 @@ class TestRancherComposeLBService:
 
         launch_rancher_compose(client, env, self.tname)
         delete_all(super_client, [env])
+        client.delete()
 
 
     @pytest.mark.validate

@@ -15,12 +15,24 @@ def main():
     parser.add_argument('-s', help='server node')
     args = parser.parse_args()
     print args.b, args.t, args.s
+    current_rancher_server_version(args.s)
     upgrade_test(args.b, args.t, args.s)
+
+
+def current_rancher_server_version(server):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    privatekeyfile = os.path.expanduser('~/.ssh/google_compute_engine')
+    mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+    ssh.connect(server, username='aruneli', pkey=mykey)
+    stdin, stdout, stderr = ssh.exec_command("sudo docker ps -a | awk ' NR>1 {print $2}' | cut -d \: -f 2 | cut -d \\v -f 2")
+    tag_of_rancher_server = stdout.readlines()[0].strip("\n")
+    print "Current server version is: ", tag_of_rancher_server
 
 
 def upgrade_test(base, target, servernode):
     print ("\n ********** CREATING SERVICES NOW IN BASE SETUP ********** \n")
-    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/rancher_compose.py -v -m create -s")
+    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/test_rancher_compose.py -v -m create -s")
     upgrade_rancher_server(base, target, servernode)
     os.system("mkdir ../validation/cattlevalidationtest/core_target")
     os.system("mkdir ../../tmp")
@@ -28,7 +40,7 @@ def upgrade_test(base, target, servernode):
     os.system("git clone -b "+target+" https://github.com/aruneli/rancher-tests.git")
     os.system("cp -r ../tests/validation/cattlevalidationtest/core/* ../tests/validation/cattlevalidationtest/core_target")
     print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET ********** \n")
-    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/rancher_compose.py -v -m validate -s")
+    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/test_rancher_compose.py -v -m validate -s")
 
 
 def upgrade_rancher_server(base, target, servernode):
@@ -37,7 +49,7 @@ def upgrade_rancher_server(base, target, servernode):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     privatekeyfile = os.path.expanduser('~/.ssh/google_compute_engine')
     mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-    ssh.connect(servernode, username='ubuntu', pkey=mykey)
+    ssh.connect(servernode, username='aruneli', pkey=mykey)
     stdin, stdout, stderr = ssh.exec_command("sudo docker ps")
     response = stdout.readlines()
     logger.info(response)
@@ -51,11 +63,11 @@ def upgrade_rancher_server(base, target, servernode):
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker pull rancher/server:v"+target
+    cmd = "sudo docker pull rancher/server:v"+target+"-rc1"
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target
+    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target+"-rc1"
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
