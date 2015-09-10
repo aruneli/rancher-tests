@@ -28,8 +28,7 @@ def upgrade_test(base, target, servernode):
     os.system("git clone -b "+target+" https://github.com/aruneli/rancher-tests.git")
     os.system("cp rancher-tests/tests/validation/cattlevalidationtest/core/* ../tests/validation/cattlevalidationtest/core_target/")
     print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET ********** \n")
-    os.chdir("../validation/cattlevalidationtest/core_target")
-    os.system("py.test test_rancher_compose.py -v -m validate -s")
+    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/test_rancher_compose.py -v -m validate -s")
 
 
 def upgrade_rancher_server(base, target, servernode):

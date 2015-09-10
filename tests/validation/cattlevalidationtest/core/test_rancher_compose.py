@@ -134,16 +134,16 @@ class TestRancherComposeService:
 
         print("********************* VALIDATED LB BASE OBJECT ***********************")
         delete_all(client, [env])
+        client.delete()
 
 
 @pytest.mark.skipif(os.environ.get('RANCHER_SERVER_VERSION') == '0.34.0',
                     reason="This release of Rancher does not support this feature")
 class TestRancherComposeLBService:
-    tname = "TestRancherComposeLBService"
 
     @pytest.mark.create
     @pytest.mark.run(order=1)
-    def test_rancher_compose_lbservice_create(super_client, client,
+    def test_rancher_compose_lbservice_create(self, super_client, client,
                                               rancher_compose_container):
 
         tname = "TestRancherComposeLBService"
@@ -179,12 +179,11 @@ class TestRancherComposeLBService:
 
         launch_rancher_compose(client, env, tname)
         delete_all(super_client, [env])
-        client.delete()
 
 
     @pytest.mark.validate
     @pytest.mark.run(order=2)
-    def test_rancher_compose_lbservice_validate(super_client, client,
+    def test_rancher_compose_lbservice_validate(self, super_client, client,
                                                 rancher_compose_container):
 
         tname = "TestRancherComposeLBService"
@@ -218,11 +217,11 @@ class TestRancherComposeLBService:
         print "\n\n\n rancher_env is:", rancher_env
 
         rancher_service = get_rancher_compose_service(
-            client, rancher_env.id, service, tname)
+            client, rancher_env.id, service)
         rancher_service1 = get_rancher_compose_service(
-            client, rancher_env.id, service1, tname)
+            client, rancher_env.id, service1)
         rancher_lb_service = get_rancher_compose_service(
-            client, rancher_env.id, lb_service, tname)
+            client, rancher_env.id, lb_service)
 
         client.wait_success(rancher_service)
         client.wait_success(rancher_service1)
