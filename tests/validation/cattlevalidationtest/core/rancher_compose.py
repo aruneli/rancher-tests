@@ -75,40 +75,33 @@ class TestRancherComposeService:
         service, env = create_env_and_svc(client, launch_config,
                                           scale, self.tname)
 
-        serviceobject['TestRancherComposeLB'] = (service, env)
-        print "\n serviceobject at test_create_rancher_compose_service is:",  serviceobject
-
-        # with open("myfile.pkl", "wb") as f:
-        #             pickle.dump(serviceobject, f)
-
-        print("\n****** CREATED SERVICE OBJECT *****\n",  serviceobject["TestRancherComposeLB"])
+        # serviceobject['TestRancherComposeLB'] = (service, env)
+        # print "\n serviceobject at test_create_rancher_compose_service is:",  serviceobject
+        # print("\n****** CREATED SERVICE OBJECT *****\n",  serviceobject["TestRancherComposeLB"])
         # return service, env
 
     @pytest.mark.validate_created
     @pytest.mark.run(order=2)
     def test_rancher_compose_service(self, super_client, client, rancher_compose_container, socat_containers):
-        # print "\n serviceobject is:", serviceobject
-        # (service, env) = serviceobject['TestRancherComposeLB']
-        #
-        # with open("myfile.pkl", "wb") as f:
-        #             pickle.load(serviceobject, f)
-        print "\n serviceobject at test_rancher_compose_service is:",  serviceobject
-        (service, env) =  serviceobject['TestRancherComposeLB']
 
-        print "\n service is:", service
+        # print "\n serviceobject at test_rancher_compose_service is:", serviceobject
+        # (service, env) = serviceobject['TestRancherComposeLB']
+
+        env = client.list_environment(name="TestRancherComposeService")
+
+        # print "\n service is:", service
         print "\n env is:", env
         print "\n test name is:", self.tname
         print "\n client is:", client
-        # launch_rancher_compose(client, env, "service_options")
+        # launch_rancher_compose(client, env, self.tname)
         #
-        # rancher_envs = client.list_environment(name=env.name + "rancher")
-        #assert len(rancher_envs) == 1
+        # rancher_envs = client.list_environment(name=self.tname)
+        # assert len(rancher_envs) == 1
         # rancher_env = rancher_envs[0]
         # print "\n rancher_env is:", rancher_env
         # rancher_service = get_rancher_compose_service(
         #     client, rancher_env.id, service)
-
-        # rancher_services = client.list_service(name=service.name,
+        # rancher_services = client.list_service(name="TestRancherComposeService",
         #                                    environmentId=rancher_env.id,
         #                                    removed_null=True)
         # print "\n rancher_services:", rancher_services
@@ -152,7 +145,7 @@ class TestRancherComposeService:
             # assert inspect["Config"]["CpuShares"] == cpu_shares
 
         print("********************* VALIDATED LB BASE OBJECT ***********************")
-        # delete_all(client, [env, rancher_env])
+        delete_all(client, [env])
 
 
 def get_rancher_compose_service(client, rancher_env_id, service):
