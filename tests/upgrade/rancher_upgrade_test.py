@@ -20,14 +20,15 @@ def main():
 
 def upgrade_test(base, target, servernode):
     print ("\n **********   CREATING SERVICES NOW IN BASE SETUP  ********** \n")
-    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/test_rancher_compose.py -v -m create -s")
-    #upgrade_rancher_server(base, target, servernode)
     os.system("mkdir /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target")
     os.system("mkdir ../../tmp")
     os.chdir("../../tmp")
+    os.system(("cp -r /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/* /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/"))
+    os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/test_rancher_compose.py -v -m create -s")
+    time.sleep(10)
+    upgrade_rancher_server(base, target, servernode)
     #os.system("git clone -b master --single-branch https://github.com/aruneli/rancher-tests.git")
     #os.system("cp rancher-tests/tests/validation/cattlevalidationtest/core/* ../tests/validation/cattlevalidationtest/core_target/")
-    os.system(("cp -r /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/* /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/"))
     print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET ********** \n")
     os.system("py.test /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/test_rancher_compose.py -v -m validate -s")
     logger.info("\n *** VALIDATION COMPLETE *** \n")
@@ -56,23 +57,28 @@ def upgrade_rancher_server(base, target, servernode):
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker pull rancher/server:v"+target+"-rc1"
+    cmd = "sudo docker pull rancher/server:v"+target
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target+"-rc1"
+    cmd = "sudo docker run -d --volumes-from rancher-data --restart=always -p 8080:8080 rancher/server:v"+target
     stdin, stdout, stderr = ssh.exec_command(cmd)
     response = stdout.readlines()
     logger.info(response)
-    stdin, stdout, stderr = ssh.exec_command("sudo docker ps | awk ' NR>1 {print $2}' | cut -d \: -f 2")
+    stdin, stdout, stderr = ssh.exec_command("sudo docker ps | awk ' NR>1 {print $2}' | cut -d \: -f 2| cut -d \\v -f 2")
     tag_of_rancher_version_after_upgrade= stdout.readlines()[0].strip("\n")
-    stdin, stdout, stderr = ssh.exec_command("sudo docker ps | awk ' NR>1 {print $8)")
+    print "tag_of_rancher_version_after_upgrade is:", tag_of_rancher_version_after_upgrade
+    time.sleep(10)
+    stdin, stdout, stderr = ssh.exec_command("sudo docker ps | awk ' NR>1 {print $8}' ")
     state_of_rancher_server_container_after_upgrade = stdout.readlines()[0].strip("\n")
-    stdin, stdout, stderr = ssh.exec_command("sudo docker ps | awk ' NR>1 {print $12)")
-    port_info = stdout.readlines()[0].strip("\n")
-    if tag_of_rancher_version_after_upgrade == target and state_of_rancher_server_container_after_upgrade == "Up" and "8080" in port_info:
+    print "state_of_rancher_server_container_after_upgrade is:", state_of_rancher_server_container_after_upgrade
+    # stdin, stdout, stderr = ssh.exec_command("sudo docker ps | awk ' NR>1 {print $12}' ")
+    # port_info = stdout.readlines()
+    # logger.info(response)
+    # print "port info: ", port_info
+    if tag_of_rancher_version_after_upgrade == target and state_of_rancher_server_container_after_upgrade == "Up":
         logger.info("\n ********* UPGRADE RANCHER SERVER TO TARGET COMPLETE ************* \n")
-    time.sleep(60)
+    time.sleep(90)
 
 
 if __name__ == '__main__':
