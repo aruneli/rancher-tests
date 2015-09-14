@@ -1,0 +1,8 @@
+setup.cfg
+setup.py
+digitaloceanbackup/__init__.py
+python_digitalocean_backup.egg-info/PKG-INFO
+python_digitalocean_backup.egg-info/SOURCES.txt
+python_digitalocean_backup.egg-info/dependency_links.txt
+python_digitalocean_backup.egg-info/requires.txt
+python_digitalocean_backup.egg-info/top_level.txt

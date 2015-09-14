@@ -35,6 +35,8 @@ PRIVATE_KEY_FILENAME = "/tmp/private_key_host_ssh"
 HOST_SSH_TEST_ACCOUNT = "ranchertest"
 HOST_SSH_PUBLIC_PORT = 2222
 
+DAT_DIR="/Users/aruneli/rancher/rancher-tests/"
+
 socat_container_list = []
 rancher_compose_con = {"container": None, "host": None, "port": "7878"}
 
@@ -1027,8 +1029,8 @@ def launch_rancher_compose(client, env, testname):
     secret_key = client._secret_key
     docker_filename = testname + "-docker-compose.yml"
     rancher_filename = testname + "-rancher-compose.yml"
-    project_name = env.name + "rancher"
-
+    #project_name = env.name + "rancher"
+    project_name = env.name
     cmd1 = "export RANCHER_URL=" + cattle_url()
     cmd2 = "export RANCHER_ACCESS_KEY=" + access_key
     cmd3 = "export RANCHER_SECRET_KEY=" + secret_key
@@ -1063,7 +1065,7 @@ def create_env_with_svc_and_lb(client, scale_svc, scale_lb, port, testname):
     launch_config_lb = {"ports": [port+":80"]}
 
     # Create Environment
-    env = create_env(client, testname)
+    env = create_env(client)
 
     # Create Service
     service_name = testname
@@ -1510,12 +1512,20 @@ def get_plain_id(admin_client, obj=None):
     return ret[0].id
 
 
-def create_env(client, testname):
-    env_name = testname
+def create_env(client):
+    random_name = random_str()
+    env_name = random_name.replace("-", "")
     env = client.create_environment(name=env_name)
     env = client.wait_success(env)
     assert env.state == "active"
     return env
+
+# def create_env(client, testname):
+#     env_name = testname+"Env"
+#     env = client.create_environment(name=env_name)
+#     env = client.wait_success(env)
+#     assert env.state == "active"
+#     return env
 
 
 def get_env(super_client, service):

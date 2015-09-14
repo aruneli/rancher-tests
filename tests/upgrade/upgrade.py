@@ -4,7 +4,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 from tests.validation.cattlevalidationtest.core.common_fixtures import *  # NOQA
-
+from docker import Client
 
 def main():
     parser = argparse.ArgumentParser()
@@ -12,8 +12,13 @@ def main():
     parser.add_argument('-s', help='server node')
     args = parser.parse_args()
     logger.info(args)
-    current_rancher_server_version(args.s)
+    #upgrade(args.t, args.s)
+    #current_rancher_server_version(args.s)
     upgrade_rancher_server(args.t, args.s)
+
+def upgrade(target, server):
+    cli = Client(base_url="http://130.211.189.242:5555")
+    cli.containers()
 
 
 def current_rancher_server_version(server):

@@ -1,0 +1,68 @@
+Metadata-Version: 1.1
+Name: bgtunnel
+Version: 0.4.0
+Summary: Initiate SSH tunnels in the background
+Home-page: https://github.com/jmagnusson/bgtunnel
+Author: Jacob Magnusson
+Author-email: m@jacobian.se
+License: BSD
+Description: bgtunnel - Initiate SSH tunnels in the background
+        Useful when you need to connect to a database only accessible through
+        another ssh-enabled host. It works by opening a port forwarding ssh
+        connection in the background, using threads. The connection(s) are
+        automatically closed when the process exits, or when explicitly calling
+        the `close` method of the returned SSHTunnelForwarderThread object.
+        
+        Notes on default values
+        -----------------------
+        
+        * Bind address and host address defaults to "127.0.0.1"
+        * SSH port defaults to 22
+        * Bind port defaults to picking a random available one, accessible from the
+          object returned by the `open` function
+        
+        Usage examples
+        --------------
+        
+            # Enable forwarding for a MS SQL server running on the remote SSH host
+            >>> import bgtunnel
+            >>> forwarder = bgtunnel.open(ssh_user='manager', ssh_address='1.2.3.4',
+            ...                           host_port=1433)
+            >>> print(forwarder.bind_port)
+            59432
+            >>> import somesqlpkg
+            >>> conn = somesqlpkg.connect('mssql://myuser:mypassword@localhost:' +
+                                                               forwarder.port)
+        
+            # Enable forwarding for an old AS400 DB2 server accessible only via
+            # the remote SSH host. Multiple ports need to be opened.
+            >>> import bgtunnel
+            >>> ports = [446, 449] + range(8470, 8477)
+            >>> forwarders = []
+            >>> for port in ports:
+            ...     forwarders.append(bgtunnel.open(ssh_user='manager',
+            ...                                     ssh_address='1.2.3.4',
+                                                    host_address='192.168.0.5',
+            ...                                     host_port=port, bind_port=port))
+            >>> print('
+        '.join(f.bind_port for f in forwarders))
+            446
+            449
+            8470
+            8471
+            8472
+            8473
+            8474
+            8475
+            8476
+            >>> import somesqlpkg
+            >>> conn = somesqlpkg.connect('mssql://myuser:mypassword@localhost:446')
+        
+        
+Platform: unix
+Platform: macos
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: Unix
+Classifier: Programming Language :: Python

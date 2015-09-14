@@ -1,5 +1,6 @@
 from tests.validation.cattlevalidationtest.core.common_fixtures import *  # NOQA
 import pytest
+import pickle
 
 TEST_SERVICE_OPT_IMAGE = 'ibuildthecloud/helloworld'
 TEST_SERVICE_OPT_IMAGE_LATEST = TEST_SERVICE_OPT_IMAGE + ':latest'
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 @pytest.mark.skipif(os.environ.get('RANCHER_SERVER_VERSION') == '0.35.0',
                     reason="This release of Rancher does not support this feature")
 class TestRancherComposeService:
-    tname = "TestRancherComposeService"
+    testname = "TestRancherComposeService"
 
     @pytest.mark.create
     @pytest.mark.run(order=1)
@@ -69,7 +70,7 @@ class TestRancherComposeService:
         scale = 1
 
         service, env = create_env_and_svc(client, launch_config,
-                                          scale, self.tname)
+                                          scale, self.testname)
 
     @pytest.mark.validate
     @pytest.mark.run(order=2)
@@ -79,11 +80,11 @@ class TestRancherComposeService:
         env = client.list_environment(name="TestRancherComposeService")
 
         print "\n env is:", env
-        print "\n test name is:", self.tname
+        print "\n test name is:", self.testname
         print "\n client is:", client
-        launch_rancher_compose(client, env, self.tname)
+        launch_rancher_compose(client, env, self.testname)
 
-        rancher_envs = client.list_environment(name=self.tname)
+        rancher_envs = client.list_environment(name=self.testname)
         assert len(rancher_envs) == 1
         rancher_env = rancher_envs[0]
         print "\n rancher_env is:", rancher_env
@@ -140,100 +141,105 @@ class TestRancherComposeService:
 @pytest.mark.skipif(os.environ.get('RANCHER_SERVER_VERSION') == '0.34.0',
                     reason="This release of Rancher does not support this feature")
 class TestRancherComposeLBService:
+    port = "7900"
+    service_scale = 2
+    lb_scale = 1
+    testname = "TestRancherComposeLBService"
 
     @pytest.mark.create
     @pytest.mark.run(order=1)
     def test_rancher_compose_lbservice_create(self, super_client, client,
                                               rancher_compose_container):
-
-        tname = "TestRancherComposeLBService"
         print "\n\n\n client is:", client
-
-        port = "7900"
-
         # Add LB service and do not activate services
-        service_scale = 2
-        lb_scale = 1
-
         env, service, lb_service = create_env_with_svc_and_lb(
-            client, service_scale, lb_scale, port, tname)
+            client, self.service_scale, self.lb_scale, self.port, self.testname)
 
         service_link = {"serviceId": service.id, "ports": ["80"]}
         lb_service.addservicelink(serviceLink=service_link)
-
         validate_add_service_link(super_client, lb_service, service)
-
         # Add another service link to the LB service
         launch_config = {"imageUuid": WEB_IMAGE_UUID}
-        service_name = tname + "1"
+        service_name = self.testname + "1"
         service1 = client.create_service(name=service_name,
                                          environmentId=env.id,
                                          launchConfig=launch_config,
                                          scale=2)
         service1 = client.wait_success(service1)
         assert service1.state == "inactive"
-
         service_link = {"serviceId": service1.id, "ports": ["80"]}
         lb_service.addservicelink(serviceLink=service_link)
         validate_add_service_link(super_client, lb_service, service1)
-
-        launch_rancher_compose(client, env, tname)
-        delete_all(super_client, [env])
-
+        launch_rancher_compose(client, env, self.testname)
+        print "\n\n\n env is:", env
+        uuids = [env.uuid, service.uuid, service1.uuid, lb_service.uuid]
+        print "\n\n\n uuids:", uuids
+        save(uuids)
 
     @pytest.mark.validate
     @pytest.mark.run(order=2)
-    def test_rancher_compose_lbservice_validate(super_client, client,
+    def test_rancher_compose_lbservice_validate(self, super_client, client,
                                                 rancher_compose_container):
-
-        tname = "TestRancherComposeLBService"
+        uuids = load()
+        print "\n\n\n uuids:", uuids
         print "\n\n\n client is:", client
         port = "7900"
-        env1 = client.list_environment(name="testranchercomposelbservicerancher")
-        print "\n\n\n env is:", env1
-
-        services = client.list_service(name="TestRancherComposeLBService")
+        env = client.list_environment(uuid=uuids[0])
+        print "\n\n\n env is:", env
+        services = client.list_service(uuid=uuids[1])
         assert len(services) > 0
         service = services[0]
         print "\n\n\n service is:", service
-
-        services1 = client.list_service(name="TestRancherComposeLBService1")
+        services1 = client.list_service(uuid=uuids[2])
         assert len(services1) > 0
         service1 =  services1[0]
         print "\n\n\n service1 is:", service1
-
-        lb_services = client.list_service(name="TestRancherComposeLBServiceLB")
-        assert len(lb_services) > 0
+        lb_services = client.list_service(uuid=uuids[3])
+        assert len(lb_services) == 1
         lb_service = lb_services[0]
         print "\n\n\n lb_service is:", lb_service
-
-        rancher_envs = client.list_environment(name="testranchercomposelbservicerancher")
-
+        rancher_envs = client.list_environment(uuid=uuids[0])
         print "\n\n\n rancher_envs is:", rancher_envs
-
         assert len(rancher_envs) > 0
         rancher_env = rancher_envs[0]
-
         print "\n\n\n rancher_env is:", rancher_env
-
         rancher_service = get_rancher_compose_service(
             client, rancher_env.id, service)
         rancher_service1 = get_rancher_compose_service(
             client, rancher_env.id, service1)
         rancher_lb_service = get_rancher_compose_service(
             client, rancher_env.id, lb_service)
-
         client.wait_success(rancher_service)
         client.wait_success(rancher_service1)
         client.wait_success(rancher_lb_service)
-        # validate_add_service_link(
-        #     super_client, rancher_lb_service, rancher_service)
-        # validate_add_service_link(
-        #     super_client, rancher_lb_service, rancher_service1)
-        #
+        validate_add_service_link(
+            super_client, rancher_lb_service, rancher_service)
+        validate_add_service_link(
+            super_client, rancher_lb_service, rancher_service1)
         # validate_lb_service(super_client, client, rancher_lb_service, port,
         #                     [rancher_service, rancher_service1])
-        #delete_all(super_client, [env1])
+
+
+def save(uuids):
+    stack = inspect.stack()
+    frame = stack[1][0]
+    caller = frame.f_locals.get('self', None)
+    caller = str(caller)
+    classname = re.search(r'\.\w+\s', caller).group()[1:]
+    with open(os.path.join(DAT_DIR, classname), 'wb') as handle:
+            pickle.dump(uuids, handle)
+
+
+def load():
+    stack = inspect.stack()
+    frame = stack[1][0]
+    caller = frame.f_locals.get('self', None)
+    caller = str(caller)
+    classname = re.search(r'\.\w+\s', caller).group()[1:]
+    with open(os.path.join(DAT_DIR, classname), 'rb') as handle:
+            uuids = pickle.load(handle)
+            os.remove(os.path.join(DAT_DIR, classname))
+            return uuids
 
 
 def get_rancher_compose_service(client, rancher_env_id, service):
