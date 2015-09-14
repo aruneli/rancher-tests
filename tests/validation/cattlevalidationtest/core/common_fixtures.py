@@ -9,8 +9,7 @@ import paramiko
 import inspect
 import re
 from docker import Client
-from urlparse import urlparse
-
+import subprocess as sub
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -35,7 +34,6 @@ PRIVATE_KEY_FILENAME = "/tmp/private_key_host_ssh"
 HOST_SSH_TEST_ACCOUNT = "ranchertest"
 HOST_SSH_PUBLIC_PORT = 2222
 
-DAT_DIR="/Users/aruneli/rancher/rancher-tests/"
 
 socat_container_list = []
 rancher_compose_con = {"container": None, "host": None, "port": "7878"}
@@ -43,6 +41,10 @@ rancher_compose_con = {"container": None, "host": None, "port": "7878"}
 MANAGED_NETWORK = "managed"
 UNMANAGED_NETWORK = "bridge"
 
+
+git_root_dir, err = sub.Popen("git rev-parse --show-toplevel", stdout=sub.PIPE, shell=True ).communicate()
+root_dir = os.path.join(os.path.dirname(git_root_dir),'rancher-tests')
+compose_template_dir = os.path.join(root_dir, 'data','compose')
 
 @pytest.fixture(scope='session')
 def cattle_url():
@@ -1519,13 +1521,6 @@ def create_env(client):
     env = client.wait_success(env)
     assert env.state == "active"
     return env
-
-# def create_env(client, testname):
-#     env_name = testname+"Env"
-#     env = client.create_environment(name=env_name)
-#     env = client.wait_success(env)
-#     assert env.state == "active"
-#     return env
 
 
 def get_env(super_client, service):

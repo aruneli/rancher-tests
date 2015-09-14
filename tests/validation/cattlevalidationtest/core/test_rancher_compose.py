@@ -150,12 +150,10 @@ class TestRancherComposeLBService:
     @pytest.mark.run(order=1)
     def test_rancher_compose_lbservice_create(self, super_client, client,
                                               rancher_compose_container):
-        filename = "TestRancherComposeLBService"
         print "\n\n\n client is:", client
         # Add LB service and do not activate services
         env, service, lb_service = create_env_with_svc_and_lb(
             client, self.service_scale, self.lb_scale, self.port, self.testname)
-
         service_link = {"serviceId": service.id, "ports": ["80"]}
         lb_service.addservicelink(serviceLink=service_link)
         validate_add_service_link(super_client, lb_service, service)
@@ -175,14 +173,13 @@ class TestRancherComposeLBService:
         print "\n\n\n env is:", env
         uuids = [env.uuid, service.uuid, service1.uuid, lb_service.uuid]
         print "\n\n\n uuids:", uuids
-        save(uuids, filename)
+        save(uuids, self)
 
     @pytest.mark.validate
     @pytest.mark.run(order=2)
-    def test_rancher_compose_lbservice_validate(super_client, client,
+    def test_rancher_compose_lbservice_validate(self, super_client, client,
                                                 rancher_compose_container):
-        testname = "TestRancherComposeLBService"
-        uuids = load(testname)
+        uuids = load(self)
         print "\n\n\n uuids:", uuids
         print "\n\n\n client is:", client
         port = "7900"
@@ -214,23 +211,21 @@ class TestRancherComposeLBService:
         client.wait_success(rancher_service)
         client.wait_success(rancher_service1)
         client.wait_success(rancher_lb_service)
-        # validate_add_service_link(
-        #     super_client, rancher_lb_service, rancher_service)
-        # validate_add_service_link(
-        #     super_client, rancher_lb_service, rancher_service1)
-        # validate_lb_service(super_client, client, rancher_lb_service, port,
-        #                     [rancher_service, rancher_service1])
 
 
-def save(uuids, testname):
-    with open(os.path.join(DAT_DIR, testname), 'wb') as handle:
+def save(uuids, self):
+    filename = str(self.__class__).split(".")[1]
+    print "filename is:",filename
+    with open(os.path.join(git_root_dir, filename), 'wb') as handle:
             pickle.dump(uuids, handle)
 
 
-def load(testname):
-    with open(os.path.join(DAT_DIR, testname), 'rb') as handle:
+def load(self):
+    filename = str(self.__class__).split(".")[1]
+    print "filename is:",filename
+    with open(os.path.join(git_root_dir, filename), 'rb') as handle:
             uuids = pickle.load(handle)
-            os.remove(os.path.join(DAT_DIR, testname))
+            os.remove(os.path.join(git_root_dir, filename))
             return uuids
 
 
