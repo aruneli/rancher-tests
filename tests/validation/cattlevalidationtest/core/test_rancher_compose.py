@@ -213,20 +213,22 @@ class TestRancherComposeLBService:
         client.wait_success(rancher_lb_service)
 
 
-def save(uuids, self):
-    filename = str(self.__class__).split(".")[1]
-    print "filename is:",filename
-    with open(os.path.join(git_root_dir, filename), 'wb') as handle:
+def save(uuids, obj):
+    filename = str(obj.__class__).split(".")[-1:][0]
+    print "filename is:",str(filename)
+    print "full path:", os.path.join(root_dir,filename)
+    with open(os.path.join(root_dir, filename), 'wb') as handle:
             pickle.dump(uuids, handle)
 
 
 def load(self):
-    filename = str(self.__class__).split(".")[1]
-    print "filename is:",filename
-    with open(os.path.join(git_root_dir, filename), 'rb') as handle:
-            uuids = pickle.load(handle)
-            os.remove(os.path.join(git_root_dir, filename))
-            return uuids
+    filename = str(self.__class__).split(".")[-1:][0]
+    print "filename is:",str(filename)
+    print "full path:", os.path.join(root_dir,filename)
+    with open(os.path.join(root_dir, filename), 'rb') as handle:
+            objects = pickle.load(handle)
+            os.remove(os.path.join(root_dir, filename))
+            return objects
 
 
 def get_rancher_compose_service(client, rancher_env_id, service):

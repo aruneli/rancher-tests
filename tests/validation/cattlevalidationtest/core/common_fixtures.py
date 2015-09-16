@@ -9,10 +9,12 @@ import paramiko
 import inspect
 import re
 from docker import Client
-import subprocess as sub
-logging.basicConfig()
+import pickle
+import sys
+
+FORMAT = "\n[ %(asctime)s %(levelname)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s \n"
+logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt='%H:%M:%S')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 TEST_IMAGE_UUID = os.environ.get('CATTLE_TEST_AGENT_IMAGE',
                                  'docker:cattle/test-agent:v7')
@@ -42,9 +44,43 @@ MANAGED_NETWORK = "managed"
 UNMANAGED_NETWORK = "bridge"
 
 
-git_root_dir, err = sub.Popen("git rev-parse --show-toplevel", stdout=sub.PIPE, shell=True ).communicate()
-root_dir = os.path.join(os.path.dirname(git_root_dir),'rancher-tests')
+root_dir = os.environ.get('TEST_ROOT_DIR',
+                                 '/root/rancher/rancher-tests')
 compose_template_dir = os.path.join(root_dir, 'data','compose')
+currentFuncName = lambda n=0: sys._getframe(n + 1).f_code.co_name
+
+
+def format(d, tab=4):
+    s = ['{\n']
+    for k,v in d.items():
+        if isinstance(v, dict):
+            v = format(v, tab+1)
+        else:
+            v = repr(v)
+
+        s.append('%s%r: %s,\n' % ('  '*tab, k, v))
+    s.append('%s}' % ('  '*tab))
+    return ''.join(s)
+
+
+def save(uuids, obj):
+    filename = str(obj.__class__).split(".")[-1:][0]
+    print "filename is:", str(filename)
+    print "full path:", os.path.join(root_dir, filename)
+    with open(os.path.join(root_dir, filename), 'wb') as handle:
+        pickle.dump(uuids, handle)
+
+
+def load(self):
+    filename = str(self.__class__).split(".")[-1:][0]
+    print "filename is:", str(filename)
+    print "full path:", os.path.join(root_dir, filename)
+    with open(os.path.join(root_dir, filename), 'rb') as handle:
+        uuids = pickle.load(handle)
+        os.remove(os.path.join(root_dir, filename))
+        return uuids
+
+
 
 @pytest.fixture(scope='session')
 def cattle_url():
@@ -79,8 +115,7 @@ def create_user(admin_client, user_name, kind=None):
 
     active_cred = None
     for cred in account.credentials():
-        if cred.kind == 'apiKey' and cred.publicValue == user_name \
-                and cred.secretValue == password:
+        if cred.kind == 'apiKey' and cred.publicValue == user_name:
             active_cred = cred
             break
 
@@ -89,6 +124,7 @@ def create_user(admin_client, user_name, kind=None):
             'accountId': account.id,
             'publicValue': user_name,
             'secretValue': password
+
         })
 
     active_cred = wait_success(admin_client, active_cred)
@@ -110,8 +146,7 @@ def client_for_project(project):
     active_cred = None
     account = project
     for cred in account.credentials():
-        if cred.kind == 'apiKey' and cred.publicValue == access_key\
-                and cred.secretValue == secret_key:
+        if cred.kind == 'apiKey' and cred.publicValue == access_key:
             active_cred = cred
             break
 
@@ -205,7 +240,7 @@ def test_name():
 
 @pytest.fixture
 def random_str():
-    return 'test-{0}'.format(random_num())
+    return 'test-{0}-{1}'.format(random_num(), int(time.time()))
 
 
 @pytest.fixture
@@ -985,7 +1020,7 @@ def rancher_compose_container(admin_client, client, request):
         "wget " + rancher_compose_url
     cmd2 = "tar xvf rancher-compose-linux-amd64.tar.gz"
 
-    hosts = client.list_host(kind='docker', removed_null=True)
+    hosts = client.list_host(kind='docker', removed_null=True, state="active")
     assert len(hosts) > 0
     host = hosts[0]
     port = rancher_compose_con["port"]
@@ -1055,12 +1090,12 @@ def launch_rancher_compose(client, env, testname):
     expected_resp = "Creating environment " + project_name
     found = False
     for resp in response:
-        if expected_resp not in resp:
+        if expected_resp in resp:
             found = True
     assert found
 
 
-def create_env_with_svc_and_lb(client, scale_svc, scale_lb, port, testname):
+def create_env_with_svc_and_lb(client, scale_svc, scale_lb, port, testname, internal=False):
 
     launch_config_svc = {"imageUuid": WEB_IMAGE_UUID}
 
@@ -1238,7 +1273,7 @@ def create_env_with_ext_svc(client, scale_svc, port):
 
 def create_env_and_svc(client, launch_config, scale, testname):
 
-    env = create_env(client, testname)
+    env = create_env(client)
     service = create_svc(client, env, launch_config, scale, testname)
     return service, env
 
@@ -1262,9 +1297,6 @@ def check_container_in_service(super_client, service):
 
 
 def create_svc(client, env, launch_config, scale, testname):
-
-    #random_name = random_str()
-    #service_name = random_name.replace("-", "")
     service_name = testname
     service = client.create_service(name=service_name,
                                     environmentId=env.id,

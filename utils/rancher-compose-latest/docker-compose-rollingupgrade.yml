@@ -1,0 +1,23 @@
+wordpress:
+wordpressnew:
+  ports:
+  - 8081:80/tcp
+  restart: always
+  labels:
+    io.rancher.scheduler.global: 'true'
+  tty: true
+  image: wordpress:4.2
+  stdin_open: true
+  links:
+  - db:mysql
+wpalias:
+  image: rancher/dns-service
+  links:
+  - wordpressnew:wordpress
+DNSClient:
+  restart: always
+  tty: true
+  image: sangeetha/testclient
+  links:
+  - 'wpalias:'
+  stdin_open: true

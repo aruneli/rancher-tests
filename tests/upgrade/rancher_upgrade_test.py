@@ -38,25 +38,32 @@ def upgrade_test(base, target, servernode):
     # except OSError as e:
     #     print('Directory not copied. Error: %s' % e)
 
-    #below is for quick dummy test
-    try:
-        shutil.copy(core_dir, core_target_dir)
-    # Directories are the same
-    except shutil.Error as e:
-        print('Directory not copied. Error: %s' % e)
-    # Any error saying that the directory doesn't exist
-    except OSError as e:
-        print('Directory not copied. Error: %s' % e)
-    create_cmd = "py.test "+core_dir+" -v -m create -s"
+
+    #create_cmd = "py.test "+core_dir+" -v -m create -s"
+    create_cmd = "py.test "+core_dir+"/test_services.py"+" -v -m create -s"
+    print create_cmd
     os.system(create_cmd)
     time.sleep(5)
     upgrade_rancher_server(base, target, servernode)
+    print ("\n ********** COPYING TARGET LIBRARIES in core_target folder now ********** \n")
+    #below is for quick dummy test
+    # try:
+    #     shutil.copytree(core_dir, core_target_dir)
+    # # Directories are the same
+    # except shutil.Error as e:
+    #     print('Directory not copied. Error: %s' % e)
+    # # Any error saying that the directory doesn't exist
+    # except OSError as e:
+    #     print('Directory not copied. Error: %s' % e)
+    os.system(("cp -r /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core/*.py /Users/aruneli/rancher/rancher-tests/tests/validation/cattlevalidationtest/core_target/"))
     print ("\n ********** VALIDATING UPGRADED SETUP NOW WITH TARGET ********** \n")
-    validate_cmd = "py.test "+core_target_dir+" -v -m validate -s"
+    #validate_cmd = "py.test "+core_target_dir+" -v -m validate -s"
+    validate_cmd = "py.test "+core_target_dir+"/test_services.py"+" -v -m validate -s"
+    print validate_cmd
     os.system(validate_cmd)
     logger.info("\n *** VALIDATION COMPLETE *** \n")
-    os.rmdir(tmp_dir)
-    os.rmdir(core_target_dir)
+    os.system("rm -rf "+tmp_dir)
+    os.system("rm -rf "+core_target_dir)
 
 
 def upgrade_rancher_server(base, target, servernode):
@@ -94,11 +101,11 @@ def upgrade_rancher_server(base, target, servernode):
     stdin, stdout, stderr = ssh.exec_command("sudo docker ps | awk ' NR>1 {print $8}' ")
     state_of_rancher_server_container_after_upgrade = stdout.readlines()[0].strip("\n")
     print "state_of_rancher_server_container_after_upgrade is:", state_of_rancher_server_container_after_upgrade
+    time.sleep(90)
     if tag_of_rancher_version_after_upgrade == target and state_of_rancher_server_container_after_upgrade == "Up":
         server = 'http://'+servernode+":8080"
         if requests.get(server).status_code == 200:
             logger.info("\n ********* UPGRADE RANCHER SERVER TO TARGET COMPLETE AND SUCCESSFUL ************* \n")
-    time.sleep(90)
 
 
 if __name__ == '__main__':
